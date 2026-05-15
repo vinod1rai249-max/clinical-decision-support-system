@@ -12,13 +12,19 @@ app = FastAPI(title="Clinical Decision Support API")
 
 # --- AUTHENTICATION ---
 API_KEY_NAME = "X-API-Key"
-API_KEY = os.environ.get("CDSS_API_KEY", "dev_default_key_123")
+# Robust loading: Strip any accidental whitespace from the environment variable
+raw_key = os.environ.get("CDSS_API_KEY", "dev_default_key_123")
+API_KEY = raw_key.strip()
+
+print(f"[Auth] Backend initialized. Expecting key starting with: {API_KEY[:4]}...")
+
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    if api_key_header == API_KEY:
+    # Robust check: Strip whitespace from incoming header too
+    if api_key_header.strip() == API_KEY:
         return api_key_header
-    raise HTTPException(status_code=403, detail="Could not validate credentials")
+    raise HTTPException(status_code=403, detail=f"Authentication Failed. Key length mismatch.")
 
 class ReportRequest(BaseModel):
     report_text: str

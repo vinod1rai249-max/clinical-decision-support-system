@@ -199,6 +199,32 @@ with st.sidebar:
     st.text_area("Known History", patient_data["history"], disabled=True, height=100)
     
     st.markdown("---")
+    with st.expander("🛠️ Connection Diagnostic"):
+        if st.button("Test Backend Connection"):
+            try:
+                # 1. Test Health Check (No Auth)
+                health_url = API_BASE.replace("/api", "/health_check")
+                h_res = requests.get(health_url, timeout=5)
+                if h_res.status_code == 200:
+                    st.success("✅ Backend is Online")
+                else:
+                    st.error(f"❌ Backend unreachable ({h_res.status_code})")
+                
+                # 2. Test Auth
+                st.write(f"Testing Auth with: `{API_KEY[:4]}***`")
+                auth_res = requests.post(f"{API_BASE}/summarize", 
+                                        json={"report_text": "ping"}, 
+                                        headers=HEADERS, timeout=5)
+                if auth_res.status_code == 200:
+                    st.success("✅ API Key is Valid")
+                elif auth_res.status_code == 403:
+                    st.error("❌ 403: API Key Mismatch. Check your Secrets.")
+                else:
+                    st.warning(f"⚠️ Unexpected Status: {auth_res.status_code}")
+            except Exception as e:
+                st.error(f"❌ Connection Error: {str(e)}")
+
+    st.markdown("---")
     with st.expander("📖 Clinical Input Guide"):
         st.markdown("""
             **How to use:**

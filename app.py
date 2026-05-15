@@ -159,14 +159,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- APP LOGIC ---
-# For Cloud Deployment (Streamlit Secrets)
 if "API_BASE" in st.secrets:
     API_BASE = st.secrets["API_BASE"]
     API_KEY = st.secrets["CDSS_API_KEY"]
 else:
-    # Local Fallback
     API_BASE = os.environ.get("API_BASE", "http://localhost:8080/api")
     API_KEY = os.environ.get("CDSS_API_KEY", "dev_default_key_123")
+
+# URL Normalization: Ensure it ends with /api for consistency
+if API_BASE.endswith("/"):
+    API_BASE = API_BASE[:-1]
+if not API_BASE.endswith("/api"):
+    API_BASE = f"{API_BASE}/api"
 
 HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
 

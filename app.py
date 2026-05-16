@@ -159,15 +159,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- APP LOGIC ---
+# Multi-Key Fallback for Production Stability
 if "API_BASE" in st.secrets:
     API_BASE = st.secrets["API_BASE"]
-    # NEW VARIABLE NAME
-    API_KEY = st.secrets.get("PROD_AUTH_KEY", "clinical_access_999")
+    # Try NEW name, then OLD name, then DEFAULT
+    API_KEY = st.secrets.get("PROD_AUTH_KEY", st.secrets.get("CDSS_API_KEY", "clinical_access_999"))
 else:
     API_BASE = os.environ.get("API_BASE", "http://localhost:8080/api")
-    API_KEY = os.environ.get("PROD_AUTH_KEY", "clinical_access_999")
+    API_KEY = os.environ.get("PROD_AUTH_KEY", os.environ.get("CDSS_API_KEY", "clinical_access_999"))
 
 # URL Normalization
+API_BASE = API_BASE.strip()
 if API_BASE.endswith("/"):
     API_BASE = API_BASE[:-1]
 if not API_BASE.endswith("/api"):

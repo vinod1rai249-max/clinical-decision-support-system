@@ -72,9 +72,10 @@ async def research_async(query, max_retries=1):
             evidence_parts.append("<div style='color: #1e3a8a; font-weight: 700; margin-bottom: 0.5rem;'>📌 Established Clinical Guidelines:</div>")
             for i, doc in enumerate(local_results['documents'][0]):
                 source = local_results['metadatas'][0][i].get('source', 'Unknown')
+                url = local_results['metadatas'][0][i].get('url', '#')
                 evidence_parts.append(
                     f"<div style='margin-bottom: 1rem; padding: 1rem; background-color: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px;'>"
-                    f"<span style='font-weight: 600; color: #065f46;'>{source} Protocol:</span><br/>"
+                    f"<a href='{url}' target='_blank' style='font-weight: 600; color: #065f46; text-decoration: none;'>{source} Protocol:</a><br/>"
                     f"<div style='font-size: 0.9rem; color: #334155;'>{doc}</div>"
                     f"</div>"
                 )

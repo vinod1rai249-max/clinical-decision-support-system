@@ -57,10 +57,26 @@ class ClinicalVectorDB:
         if not self.use_managed and self.collection.count() == 0:
             print("[VectorDB] Seeding clinical guidelines...")
             guidelines = [
-                {"id": "g1", "text": "First-line CAP treatment: Amoxicillin or Doxycycline.", "metadata": {"source": "USPSTF"}},
-                {"id": "g2", "text": "Hypertension screening for 18+. Use ACEi/Thiazides.", "metadata": {"source": "USPSTF"}},
-                {"id": "g3", "text": "Metformin is preferred for T2DM.", "metadata": {"source": "ADA"}},
-                {"id": "g4", "text": "Acute Asthma: Albuterol and oral steroids.", "metadata": {"source": "GINA"}}
+                {
+                    "id": "g1", 
+                    "text": "First-line CAP treatment: Amoxicillin or Doxycycline.", 
+                    "metadata": {"source": "USPSTF", "url": "https://www.uspreventiveservicestaskforce.org/"}
+                },
+                {
+                    "id": "g2", 
+                    "text": "Hypertension screening for 18+. Use ACEi/Thiazides.", 
+                    "metadata": {"source": "USPSTF", "url": "https://www.uspreventiveservicestaskforce.org/"}
+                },
+                {
+                    "id": "g3", 
+                    "text": "Metformin is preferred for T2DM.", 
+                    "metadata": {"source": "ADA", "url": "https://diabetes.org/clinical-care/standards-of-care"}
+                },
+                {
+                    "id": "g4", 
+                    "text": "Acute Asthma: Albuterol and oral steroids.", 
+                    "metadata": {"source": "GINA", "url": "https://ginasthma.org/reports/"}
+                }
             ]
             self.collection.add(
                 documents=[g["text"] for g in guidelines],

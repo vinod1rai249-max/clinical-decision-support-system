@@ -289,7 +289,14 @@ with col_left:
                     st.session_state['summary'] = response.json()
                     st.success("Analysis Complete")
                 else:
-                    st.error(f"Failed to process report: {response.status_code}")
+                    try:
+                        error_json = response.json()
+                        st.error(f"❌ Backend Error: {error_json.get('detail', 'Unknown')}")
+                        if 'traceback' in error_json:
+                            with st.expander("🛠️ View Technical Traceback"):
+                                st.code(error_json['traceback'])
+                    except:
+                        st.error(f"❌ Critical Backend Failure ({response.status_code})")
             except Exception as e:
                 st.error(f"Connection Error: {e}")
 

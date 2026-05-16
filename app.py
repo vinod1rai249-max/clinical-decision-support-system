@@ -217,15 +217,25 @@ with st.sidebar:
                 st.write(f"Testing Auth with: `{API_KEY[:4]}***`")
                 auth_res = requests.post(f"{API_BASE}/summarize", 
                                         json={"report_text": "ping"}, 
-                                        headers=HEADERS, timeout=5)
+                                        headers=HEADERS, timeout=10)
+                
                 if auth_res.status_code == 200:
                     st.success("✅ API Key is Valid")
                 elif auth_res.status_code == 403:
                     error_detail = auth_res.json().get('detail', 'Forbidden')
                     st.error(f"❌ 403: {error_detail}")
-                    st.info("Check Streamlit Secrets vs GCP Environment Variables.")
+                elif auth_res.status_code == 500:
+                    try:
+                        error_json = auth_res.json()
+                        st.error(f"❌ 500: {error_json.get('detail', 'Internal Error')}")
+                        if 'traceback' in error_json:
+                            with st.expander("🛠️ View Backend Traceback"):
+                                st.code(error_json['traceback'])
+                    except:
+                        st.error("❌ 500: Backend crashed without returning a JSON error.")
                 else:
                     st.warning(f"⚠️ Unexpected Status: {auth_res.status_code}")
+                    st.write(auth_res.text)
             except Exception as e:
                 st.error(f"❌ Connection Error: {str(e)}")
         

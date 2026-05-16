@@ -5,15 +5,15 @@ description = "Multi-Agent Clinical Decision Support System"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "chromadb>=1.5.9",
-    "fastapi>=0.136.1",
-    "pytest>=9.0.3",
-    "requests>=2.34.1",
-    "sentence-transformers>=5.5.0",
-    "streamlit>=1.57.0",
-    "uvicorn>=0.46.0",
-    "httpx>=0.28.1",
-    "tenacity>=9.0.0",
+    "chromadb>=0.5.0",
+    "fastapi>=0.110.0",
+    "pytest>=8.0.0",
+    "requests>=2.31.0",
+    "sentence-transformers>=2.5.0",
+    "streamlit>=1.32.0",
+    "uvicorn>=0.27.0",
+    "httpx>=0.27.0",
+    "tenacity>=8.2.0",
 ]
 
 [build-system]
@@ -22,5 +22,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["shared*"]
-exclude = ["services*", "clinical_db*", "superpowers*", "tests*"]
+include = ["services*", "shared*"]

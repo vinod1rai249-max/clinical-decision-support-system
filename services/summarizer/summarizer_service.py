@@ -1,4 +1,5 @@
 import json
+import os
 
 class Summarizer:
     def summarize_lab_report(self, report_text):

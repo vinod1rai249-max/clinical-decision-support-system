@@ -218,11 +218,17 @@ with st.sidebar:
                 if auth_res.status_code == 200:
                     st.success("✅ API Key is Valid")
                 elif auth_res.status_code == 403:
-                    st.error("❌ 403: API Key Mismatch. Check your Secrets.")
+                    error_detail = auth_res.json().get('detail', 'Forbidden')
+                    st.error(f"❌ 403: {error_detail}")
+                    st.info("Check Streamlit Secrets vs GCP Environment Variables.")
                 else:
                     st.warning(f"⚠️ Unexpected Status: {auth_res.status_code}")
             except Exception as e:
                 st.error(f"❌ Connection Error: {str(e)}")
+        
+        if st.button("Clear App Cache"):
+            st.session_state.clear()
+            st.rerun()
 
     st.markdown("---")
     with st.expander("📖 Clinical Input Guide"):

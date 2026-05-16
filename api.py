@@ -21,10 +21,17 @@ print(f"[Auth] Backend initialized. Expecting key starting with: {API_KEY[:4]}..
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    # Robust check: Strip whitespace from incoming header too
-    if api_key_header.strip() == API_KEY:
+    incoming_key = api_key_header.strip()
+    if incoming_key == API_KEY:
         return api_key_header
-    raise HTTPException(status_code=403, detail=f"Authentication Failed. Key length mismatch.")
+    
+    # SAFE DIAGNOSTIC DATA
+    expected_len = len(API_KEY)
+    received_len = len(incoming_key)
+    raise HTTPException(
+        status_code=403, 
+        detail=f"Key Mismatch. Expected len: {expected_len}, Received len: {received_len}. Prefix match: {incoming_key[:3] == API_KEY[:3]}"
+    )
 
 class ReportRequest(BaseModel):
     report_text: str

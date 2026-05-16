@@ -12,25 +12,18 @@ app = FastAPI(title="Clinical Decision Support API")
 
 # --- AUTHENTICATION ---
 API_KEY_NAME = "X-API-Key"
-# Robust loading: Strip any accidental whitespace from the environment variable
-raw_key = os.environ.get("CDSS_API_KEY", "dev_default_key_123")
-API_KEY = raw_key.strip()
-
-print(f"[Auth] Backend initialized. Expecting key starting with: {API_KEY[:4]}...")
+# Use a totally NEW variable name to bypass GCP caching/corruption
+API_KEY = os.environ.get("PROD_AUTH_KEY", "clinical_access_999").strip()
 
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    incoming_key = api_key_header.strip()
-    if incoming_key == API_KEY:
+    if api_key_header.strip() == API_KEY:
         return api_key_header
     
-    # SAFE DIAGNOSTIC DATA
-    expected_len = len(API_KEY)
-    received_len = len(incoming_key)
     raise HTTPException(
         status_code=403, 
-        detail=f"Key Mismatch. Expected len: {expected_len}, Received len: {received_len}. Prefix match: {incoming_key[:3] == API_KEY[:3]}"
+        detail=f"Auth Failed. Expected len: {len(API_KEY)}, Received: {len(api_key_header.strip())}"
     )
 
 class ReportRequest(BaseModel):

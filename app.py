@@ -161,18 +161,19 @@ st.markdown("""
 # --- APP LOGIC ---
 if "API_BASE" in st.secrets:
     API_BASE = st.secrets["API_BASE"]
-    API_KEY = st.secrets["CDSS_API_KEY"]
+    # NEW VARIABLE NAME
+    API_KEY = st.secrets.get("PROD_AUTH_KEY", "clinical_access_999")
 else:
     API_BASE = os.environ.get("API_BASE", "http://localhost:8080/api")
-    API_KEY = os.environ.get("CDSS_API_KEY", "dev_default_key_123")
+    API_KEY = os.environ.get("PROD_AUTH_KEY", "clinical_access_999")
 
-# URL Normalization: Ensure it ends with /api for consistency
+# URL Normalization
 if API_BASE.endswith("/"):
     API_BASE = API_BASE[:-1]
 if not API_BASE.endswith("/api"):
     API_BASE = f"{API_BASE}/api"
 
-HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
+HEADERS = {"X-API-Key": API_KEY.strip(), "Content-Type": "application/json"}
 
 def on_patient_change():
     # Clear session state to ensure a fresh page on patient change

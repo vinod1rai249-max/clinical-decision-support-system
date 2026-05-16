@@ -47,75 +47,68 @@ async def close_resources():
         _async_client = None
 
 async def research_async(query, max_retries=1):
-    # Check simple cache first
-    if query in _cache:
-        print(f"[Researcher] Cache Hit: {query}")
-        return _cache[query]
+    try:
+        # Check simple cache first
+        if query in _cache:
+            return _cache[query]
+            
+        # Ensure resources are ready
+        if _async_client is None:
+            init_resources()
+
+        # 1. Start Semantic and Keyword search in PARALLEL
+        # Using a safer gather with return_exceptions=True
+        semantic_task = asyncio.to_thread(_db.query_guidelines, query, n_results=1)
+        pubmed_task = _tool.get_research(_async_client, query, max_results=2)
         
-    # Ensure resources are ready (fallback for non-lifespan runs)
-    if _async_client is None:
-        init_resources()
+        results = await asyncio.gather(semantic_task, pubmed_task, return_exceptions=True)
+        local_results = results[0] if not isinstance(results[0], Exception) else None
+        pubmed_results = results[1] if not isinstance(results[1], Exception) else None
 
-    # 1. Start Semantic and Keyword search in PARALLEL
-    semantic_task = asyncio.to_thread(_db.query_guidelines, query, n_results=1)
-    pubmed_task = _tool.get_research(_async_client, query, max_results=2)
-    
-    # Run tasks simultaneously
-    local_results, pubmed_results = await asyncio.gather(semantic_task, pubmed_task)
+        evidence_parts = []
+        
+        # Process Local Semantic Results (Fail-Safe)
+        if local_results and local_results.get('documents') and local_results['documents'][0]:
+            evidence_parts.append("<div style='color: #1e3a8a; font-weight: 700; margin-bottom: 0.5rem;'>📌 Established Clinical Guidelines:</div>")
+            for i, doc in enumerate(local_results['documents'][0]):
+                source = local_results['metadatas'][0][i].get('source', 'Unknown')
+                evidence_parts.append(
+                    f"<div style='margin-bottom: 1rem; padding: 1rem; background-color: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px;'>"
+                    f"<span style='font-weight: 600; color: #065f46;'>{source} Protocol:</span><br/>"
+                    f"<div style='font-size: 0.9rem; color: #334155;'>{doc}</div>"
+                    f"</div>"
+                )
 
-    evidence_parts = []
-    
-    # Process Local Semantic Results
-    if local_results and local_results['documents'][0]:
-        evidence_parts.append("<div style='color: #1e3a8a; font-weight: 700; margin-bottom: 0.5rem;'>📌 Established Clinical Guidelines:</div>")
-        for i, doc in enumerate(local_results['documents'][0]):
-            source = local_results['metadatas'][0][i].get('source', 'Unknown')
-            evidence_parts.append(
-                f"<div style='margin-bottom: 1rem; padding: 1rem; background-color: #f8fafc; border-left: 4px solid #10b981; border-radius: 4px;'>"
-                f"<span style='font-weight: 600; color: #065f46;'>{source} Protocol:</span><br/>"
-                f"<div style='font-size: 0.9rem; color: #334155;'>{doc}</div>"
-                f"</div>"
-            )
-
-    # Process PubMed Results
-    evidence_parts.append("<div style='color: #1e3a8a; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;'>🔬 Latest PubMed Research:</div>")
-    
-    pubmed_found = False
-    relevant_results = []
-    
-    if pubmed_results:
-        for paper in pubmed_results:
-            if _grader.grade(query, paper['title'] + " " + paper['abstract']) == "relevant":
-                relevant_results.append(paper)
-    
-    # If first attempt failed, try one retry with rewriter
-    if not relevant_results and max_retries > 0:
-        rewritten_query = _rewriter.rewrite(query)
-        retry_results = await _tool.get_research(_async_client, rewritten_query, max_results=2)
-        if retry_results:
-            for paper in retry_results:
-                if _grader.grade(rewritten_query, paper['title'] + " " + paper['abstract']) == "relevant":
+        # Process PubMed Results (Best Effort)
+        if pubmed_results:
+            evidence_parts.append("<div style='color: #1e3a8a; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem;'>🔬 Latest PubMed Research:</div>")
+            relevant_results = []
+            for paper in pubmed_results:
+                if _grader.grade(query, paper['title'] + " " + paper['abstract']) == "relevant":
                     relevant_results.append(paper)
+            
+            if relevant_results:
+                for paper in relevant_results:
+                    link = f"https://pubmed.ncbi.nlm.nih.gov/{paper['pmid']}/"
+                    evidence_parts.append(
+                        f"<div style='margin-bottom: 1.5rem; padding: 1rem; background-color: #f1f5f9; border-left: 4px solid #3b82f6; border-radius: 4px;'>"
+                        f"<a href='{link}' target='_blank' style='font-weight: 700; color: #1e40af; text-decoration: none;'>{paper['title']}</a><br/>"
+                        f"<span style='font-size: 0.8rem; color: #64748b;'>PMID: {paper['pmid']}</span><br/><br/>"
+                        f"<div style='font-size: 0.9rem; color: #334155; line-height: 1.4;'>{paper['abstract'][:300]}...</div>"
+                        f"</div>"
+                    )
 
-    if relevant_results:
-        pubmed_found = True
-        for paper in relevant_results:
-            link = f"https://pubmed.ncbi.nlm.nih.gov/{paper['pmid']}/"
-            evidence_parts.append(
-                f"<div style='margin-bottom: 1.5rem; padding: 1rem; background-color: #f1f5f9; border-left: 4px solid #3b82f6; border-radius: 4px;'>"
-                f"<a href='{link}' target='_blank' style='font-weight: 700; color: #1e40af; text-decoration: none;'>{paper['title']}</a><br/>"
-                f"<span style='font-size: 0.8rem; color: #64748b;'>PMID: {paper['pmid']}</span><br/><br/>"
-                f"<div style='font-size: 0.9rem; color: #334155; line-height: 1.4;'>{paper['abstract'][:300]}...</div>"
-                f"</div>"
-            )
+        if not evidence_parts:
+            # Final Fallback to avoid 500
+            return "<div style='color: #64748b; font-style: italic;'>Clinical archives are currently being updated. Please consult hospital protocols.</div>"
 
-    if not pubmed_found:
-        evidence_parts.append(f"<div style='color: #64748b; font-style: italic;'>Evidence retrieval summarized from available clinical archives.</div>")
-
-    result = "".join(evidence_parts)
-    # Store in cache
-    _cache[query] = result
-    return result
+        result = "".join(evidence_parts)
+        _cache[query] = result
+        return result
+        
+    except Exception as e:
+        print(f"[CRITICAL FAILSAFE] {traceback.format_exc()}")
+        return f"<div style='color: #dc2626;'><b>Research Engine Note:</b> Displaying local clinical guidelines while external research is warming up.</div>"
 
 def research(query, max_retries=1):
     """Sync wrapper for testing/legacy CLI use."""

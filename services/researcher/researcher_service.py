@@ -4,14 +4,20 @@ import json
 import asyncio
 import httpx
 
-# Robust path to shared library
-shared_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../shared"))
+# --- ABSOLUTE PATH DISCOVERY ---
+# This ensures GCP finds the 'shared' folder regardless of the working directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, "../../"))
+shared_path = os.path.join(project_root, "shared")
+
+if project_root not in sys.path:
+    sys.path.append(project_root)
 if shared_path not in sys.path:
     sys.path.append(shared_path)
 
-from shared.pubmed import PubMedTool
-from shared.crag import RetrievalGrader, QueryRewriter
-from shared.rag import get_clinical_db
+from shared.shared.pubmed import PubMedTool
+from shared.shared.crag import RetrievalGrader, QueryRewriter
+from shared.shared.rag import get_clinical_db
 from functools import lru_cache
 
 # --- GLOBAL RESOURCE MANAGEMENT ---
